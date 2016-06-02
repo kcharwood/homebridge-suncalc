@@ -1,14 +1,14 @@
 {
-  "name": "homebridge-daylight",
-  "version": "0.1.1",
-  "description": "Daylight plugin for homebridge: https://github.com/nfarina/homebridge",
+  "name": "homebridge-suncalc",
+  "version": "0.0.1",
+  "description": "Suncalc plugin for homebridge: https://github.com/nfarina/homebridge to trigger off sunset and sunrise",
   "license": "MIT",
   "keywords": [
     "homebridge-plugin"
   ],
-  "repository": "yungsters/homebridge-daylight",
+  "repository": "kcharwood/homebridge-suncalc",
   "bugs": {
-    "url": "http://github.com/yungsters/homebridge-daylight/issues"
+    "url": "http://github.com/kcharwood/homebridge-suncalc/issues"
   },
   "engines": {
     "node": ">=4.2.0",
