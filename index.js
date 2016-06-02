@@ -9,8 +9,8 @@ module.exports = homebridge => {
   const Accessory = homebridge.hap.Accessory;
   const uuid = homebridge.hap.uuid;
   
-  const Period = function() {
-    Characteristic.call(this, 'Daytime Period', '4d640a06-34fe-45d7-bf7c-736bb2cf5693');
+  const PeriodValue = function() {
+    Characteristic.call(this, 'Suncalc Period Value', '4d640a06-34fe-45d7-bf7c-736bb2cf5693');
     this.setProps({
       format: Characteristic.Formats.UINT8,
       maxValue: 5,
@@ -20,13 +20,24 @@ module.exports = homebridge => {
     });
     this.value = this.getDefaultValue();
   };
-  inherits(Period, Characteristic);
+  inherits(PeriodValue, Characteristic);
   
-  const DaytimePeriod = function(displayName, subtype) {
+  const PeriodName = function() {
+    Characteristic.call(this, 'Suncalc Period Name', '4d640a06-34fe-45d7-bf7c-736bb2cf5694');
+    this.setProps({
+      format: Characteristic.Formats.STRING,
+      perms: [Characteristic.Perms.READ]
+    });
+    this.value = this.getDefaultValue();
+  };
+  inherits(PeriodName, Characteristic);
+  
+  const Suncalc = function(displayName, subtype) {
 	  Service.call(this, displayName, '61f96c67-1b62-4c2b-a300-58c242355017', subtype);
 
 	  // Required Characteristics
-	  this.addCharacteristic(Period);
+	  this.addCharacteristic(PeriodValue);
+	  this.addCharacteristic(PeriodName);
 
 	  // Optional Characteristics
 	  this.addOptionalCharacteristic(Characteristic.StatusActive);
@@ -35,7 +46,7 @@ module.exports = homebridge => {
 	  this.addOptionalCharacteristic(Characteristic.StatusLowBattery);
 	  this.addOptionalCharacteristic(Characteristic.Name);
 	};
-	inherits(DaytimePeriod, Service);
+	inherits(Suncalc, Service);
 
   class SuncalcAccessory {
     constructor(log, config) {
@@ -62,7 +73,7 @@ module.exports = homebridge => {
 
       this.location = config.location;
       // this.service = new Service.LightSensor(config.name);
-	  this.service = new DaytimePeriod(config.name);
+	  this.service = new Suncalc(config.name);
   	  this.log = log;
       this.updateAmbientLightLevel();
     }
@@ -92,12 +103,14 @@ module.exports = homebridge => {
       let lightRatio;
 	  let sunCalc;
       let nextUpdate;
+	  let periodName;
 	  
 	  if (now < times.dawn) {
 		  // Nightime
 	  	this.log("Currently Nighttime(0). Morning Twilight begins at " + sunDates.dawn.toLocaleTimeString())
     	nextUpdate = times.dawn
 		sunCalc = 0
+		periodName = "Night"
 	  } else if (now >= times.dawn && now < times.sunrise) {
 		  // Morning Twilight
 	  	this.log("Currently Morning Twilight(1). Sunrise is at " + sunDates.sunrise.toLocaleTimeString())
@@ -106,11 +119,13 @@ module.exports = homebridge => {
   		}
 		nextUpdate = times.sunrise
 		sunCalc = 1
+		periodName = "Morning Twilight"
 	  } else if (now >= times.sunrise && now < times.sunriseEnd) {
 		  // Sunrise
 	  	this.log("Currently Sunrise(2). Sunrise ends at " + sunDates.sunriseEnd.toLocaleTimeString())
     	nextUpdate = times.sunriseEnd
 		sunCalc = 2
+    	periodName = "Sunrise"
 	  } else if (now >= times.sunriseEnd && now < times.sunsetStart) {
 		  // Daytime
 	  	this.log("Currently Daytime(3). Sunset is at " + sunDates.sunsetStart.toLocaleTimeString())
@@ -119,16 +134,19 @@ module.exports = homebridge => {
 		}
     	nextUpdate = times.sunsetStart
 		sunCalc = 3		 
+		periodName = "Daytime"
 	  } else if (now >= times.sunsetStart && now < times.sunset) {
 		  // Sunset
 	  	this.log("Currently Sunset(4). Evening Twilight begins at " + sunDates.sunset.toLocaleTimeString())
 		nextUpdate = times.sunset
 		sunCalc = 4
+    	periodName = "Sunset"
 	  } else if (now >= times.sunset && now < times.dusk){
 		  // Evening Twilight
 	  	this.log("Currently Evening Twilight(5). Night begins at " + sunDates.dusk.toLocaleTimeString())
 		nextUpdate = times.dusk
 		sunCalc = 5
+		periodName = "Evening Twilight"  
 	  } else {
  	  	 // Nighttime
 		sunCalc = 0		  
@@ -137,11 +155,17 @@ module.exports = homebridge => {
 		const tomorrowsTimes = suncalc.getTimes(tomorrow,this.location.lat,this.location.lng)
   	  	this.log("Currently Nighttime(0). Morning Twilight begins at " + tomorrowsTimes.dawn.toLocaleTimeString())
   		nextUpdate = tomorrowsTimes.dawn.getTime()
+		periodName = "Night"
 	  }
 	  
       this.service.setCharacteristic(
-        Period,
+        PeriodValue,
         sunCalc
+      );
+	  
+      this.service.setCharacteristic(
+        PeriodName,
+        periodName
       );
 	  
       setTimeout(this.updateAmbientLightLevel.bind(this), nextUpdate - now);
